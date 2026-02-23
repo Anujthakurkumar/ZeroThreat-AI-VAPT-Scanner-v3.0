@@ -185,13 +185,11 @@ Reports + History Storage
 
 Example:
 
-```
-
 ## 📸 Dashboard Demo
 
-![ZeroThreat Dashboard](demo.png)
-
-```
+<p align="center">
+  <img src="demo.png" width="900"/>
+</p>
 
 ---
 
