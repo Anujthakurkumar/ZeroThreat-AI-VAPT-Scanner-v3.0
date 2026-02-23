@@ -181,12 +181,13 @@ Reports + History Storage
 
 ## 📷 Screenshots
 
-Add dashboard screenshots here for better GitHub presentation.
+
 
 Example:
 
 ```
-![Dashboard](screenshots/dashboard.png)
+<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/2e047950-7447-457c-b6ea-e7b312ed496e" />
+
 ```
 
 ---
@@ -204,7 +205,7 @@ Example:
 
 ## 👨‍💻 Author
 
-**Anuj Thakur**  
+**Anuj Kumar**  
 BCA (Cyber Security) Student  
 Built for learning & practical cybersecurity experience.
 
