@@ -186,7 +186,8 @@ Reports + History Storage
 Example:
 
 ```
-<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/2e047950-7447-457c-b6ea-e7b312ed496e" />
+
+![ZeroThreat Dashboard](demo.png)
 
 ```
 
