@@ -219,3 +219,7 @@ This tool is created strictly for **educational purposes**.
 The author is **not responsible** for misuse or unauthorized scanning.
 
 Always get proper permission before testing any system.
+
+## 📜 License
+This project is **not open-source**.  
+You may view it for learning/demo purposes, but **copying, redistribution, or commercial use is not allowed** without permission.
