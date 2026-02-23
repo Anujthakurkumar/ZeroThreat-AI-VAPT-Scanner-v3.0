@@ -187,6 +187,8 @@ Example:
 
 ```
 
+## 📸 Dashboard Demo
+
 ![ZeroThreat Dashboard](demo.png)
 
 ```
