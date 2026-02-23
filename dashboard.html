@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZeroThreat v3.0 — AI VAPT Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#050810; --bg2:#080d1a; --panel:#0c1224; --border:#1a2744;
+  --accent:#00f5d4; --red:#ff3864; --amber:#f7b731; --purple:#a880f0; --blue:#00b4d8;
+  --text:#c8d8f0; --dim:#4a6080;
+  --glow:0 0 20px rgba(0,245,212,.25);
+  --mono:'Share Tech Mono',monospace; --ui:'Rajdhani',sans-serif; --head:'Orbitron',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,245,212,.03)1px,transparent 1px),linear-gradient(90deg,rgba(0,245,212,.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-200px;left:0;right:0;height:200px;background:linear-gradient(transparent,rgba(0,245,212,.04),transparent);animation:scan 8s linear infinite;pointer-events:none;z-index:1}
+@keyframes scan{0%{top:-200px}100%{top:100vh}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+/* HEADER */
+header{position:relative;z-index:10;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(8,13,26,.92);backdrop-filter:blur(10px)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:38px;height:38px;border:2px solid var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;animation:pulse 3s ease-in-out infinite;box-shadow:var(--glow)}
+.logo h1{font-family:var(--head);font-size:15px;letter-spacing:3px;color:var(--accent);text-shadow:0 0 18px rgba(0,245,212,.5)}
+.logo span{font-size:9px;color:var(--dim);letter-spacing:2px;font-family:var(--mono)}
+.hdr-stats{display:flex;gap:22px}
+.hs{text-align:center;font-family:var(--mono)}
+.hs .v{font-size:18px;font-weight:700;color:var(--accent);display:block;line-height:1}
+.hs .l{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+
+/* LAYOUT */
+main{position:relative;z-index:2;display:grid;grid-template-columns:330px 1fr;height:calc(100vh - 67px)}
+
+/* LEFT */
+.left{border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;overflow:hidden}
+.left-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.lt{flex:1;padding:9px 4px;font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.lt:hover{color:var(--text)}
+.lt.active{color:var(--accent);border-bottom-color:var(--accent)}
+.lsec{display:none;flex-direction:column;flex:1;overflow-y:auto}
+.lsec.active{display:flex}
+
+/* FORM */
+.ph{padding:12px 18px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.ph h2{font-family:var(--head);font-size:9px;letter-spacing:3px;color:var(--accent)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px var(--accent);flex-shrink:0}
+.dot.r{background:var(--red);box-shadow:0 0 5px var(--red)}
+.dot.a{background:var(--amber);box-shadow:0 0 5px var(--amber)}
+.dot.p{background:var(--purple);box-shadow:0 0 5px var(--purple)}
+.form{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-family:var(--mono);display:block;margin-bottom:5px}
+input,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 11px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .2s,box-shadow .2s}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 10px rgba(0,245,212,.1)}
+input::placeholder{color:var(--dim)}
+select option{background:var(--panel)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tog-row{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--text)}
+.tog{position:relative;width:34px;height:18px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--border);border-radius:9px;cursor:pointer;transition:.3s}
+.slider:before{content:'';position:absolute;height:12px;width:12px;left:3px;bottom:3px;background:var(--dim);border-radius:50%;transition:.3s}
+input:checked+.slider{background:rgba(0,245,212,.25)}
+input:checked+.slider:before{transform:translateX(16px);background:var(--accent)}
+.stg{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.stb{padding:7px 3px;border:1px solid var(--border);border-radius:4px;background:var(--bg);color:var(--dim);font-family:var(--mono);font-size:9px;text-align:center;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:1px}
+.stb:hover,.stb.active{border-color:var(--accent);color:var(--accent);background:rgba(0,245,212,.05)}
+.hdiv{border:none;border-top:1px solid var(--border);margin:2px 0}
+.btn-scan{width:100%;padding:11px;background:linear-gradient(135deg,rgba(0,245,212,.12),rgba(0,245,212,.04));border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-family:var(--head);font-size:11px;letter-spacing:3px;cursor:pointer;transition:all .2s;text-transform:uppercase;position:relative;overflow:hidden}
+.btn-scan:hover{background:rgba(0,245,212,.17);box-shadow:var(--glow);transform:translateY(-1px)}
+.btn-scan:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* PROGRESS */
+.prog-wrap{padding:10px 18px;border-top:1px solid var(--border);display:none;flex-shrink:0}
+.prog-wrap.on{display:block}
+.prog-hdr{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:6px}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--blue));transition:width .5s;box-shadow:0 0 8px rgba(0,245,212,.4)}
+.prog-msg{font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:4px;min-height:12px}
+.terminal{background:#020508;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:#3a7a5a;max-height:120px;overflow-y:auto;margin-top:7px}
+.t-ok{color:var(--accent)}.t-warn{color:var(--amber)}.t-err{color:var(--red)}
+
+/* JOB / HISTORY LISTS */
+.list-wrap{flex:1;overflow-y:auto}
+.litem{padding:9px 18px;border-bottom:1px solid rgba(26,39,68,.5);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
+.litem:hover{background:rgba(0,245,212,.04)}
+.litem.active{background:rgba(0,245,212,.07);border-left:2px solid var(--accent)}
+.ltgt{font-family:var(--mono);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ltime{font-size:9px;color:var(--dim);font-family:var(--mono)}
+.rb{padding:2px 6px;border-radius:3px;font-size:8px;font-family:var(--mono);font-weight:700;letter-spacing:1px;flex-shrink:0}
+.rb-CRITICAL{background:rgba(255,56,100,.18);color:var(--red);border:1px solid var(--red)}
+.rb-HIGH{background:rgba(247,183,49,.18);color:var(--amber);border:1px solid var(--amber)}
+.rb-MEDIUM{background:rgba(168,128,240,.18);color:var(--purple);border:1px solid var(--purple)}
+.rb-LOW{background:rgba(0,245,212,.12);color:var(--accent);border:1px solid var(--accent)}
+.rb-MINIMAL{background:rgba(74,96,128,.12);color:var(--dim);border:1px solid var(--dim)}
+.rb-running{background:rgba(0,245,212,.07);color:var(--accent);border:1px solid rgba(0,245,212,.3);animation:pulse 1s infinite}
+.rb-scope-blocked{background:rgba(255,56,100,.1);color:var(--red);border:1px solid rgba(255,56,100,.3)}
+.empty-l{padding:20px 18px;color:var(--dim);font-family:var(--mono);font-size:10px;text-align:center}
+
+/* RIGHT */
+.right{display:flex;flex-direction:column;overflow:hidden}
+.results{flex:1;overflow-y:auto;padding:18px 22px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;text-align:center;color:var(--dim)}
+.empty-icon{font-size:52px;animation:float 4s ease-in-out infinite;opacity:.15}
+.empty-state h3{font-family:var(--head);font-size:12px;letter-spacing:3px}
+.empty-state p{font-family:var(--mono);font-size:10px;line-height:1.8;max-width:260px}
+
+/* RESULT */
+.res-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.res-target{font-family:var(--mono);font-size:17px;color:var(--accent)}
+.res-meta{font-size:10px;color:var(--dim);font-family:var(--mono);margin-top:3px}
+.res-stack{font-size:10px;color:var(--blue);font-family:var(--mono);margin-top:2px}
+.hdr-btns{display:flex;align-items:center;gap:8px}
+.btn-dl{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:5px;font-family:var(--head);font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;text-transform:uppercase;border:1px solid}
+.btn-dl:hover{transform:translateY(-1px)}
+.btn-dl:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-pdf{background:rgba(255,56,100,.09);border-color:rgba(255,56,100,.4);color:var(--red)}
+.btn-pdf:hover{background:rgba(255,56,100,.16);box-shadow:0 0 12px rgba(255,56,100,.2)}
+.btn-sarif{background:rgba(168,128,240,.09);border-color:rgba(168,128,240,.4);color:var(--purple)}
+.btn-sarif:hover{background:rgba(168,128,240,.16)}
+.btn-diff{background:rgba(0,180,216,.09);border-color:rgba(0,180,216,.4);color:var(--blue)}
+.btn-diff:hover{background:rgba(0,180,216,.16)}
+
+/* RISK RING */
+.risk-ring{position:relative;width:68px;height:68px;flex-shrink:0}
+.risk-ring svg{transform:rotate(-90deg);width:68px;height:68px}
+.ring-bg{fill:none;stroke:var(--border);stroke-width:6}
+.ring-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s ease,stroke .5s}
+.risk-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--head);font-size:15px;font-weight:900;line-height:1}
+.risk-sub{font-size:7px;font-weight:400;color:var(--dim);letter-spacing:1px;margin-top:1px}
+
+/* SUMMARY CARDS */
+.sum-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:16px}
+.sc{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:11px 6px;text-align:center;transition:transform .2s}
+.sc:hover{transform:translateY(-2px)}
+.sc .n{font-family:var(--head);font-size:20px;font-weight:700;display:block;line-height:1}
+.sc .l{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-top:3px;font-family:var(--mono)}
+.sc-C .n{color:var(--red)}.sc-C{border-color:rgba(255,56,100,.22)}
+.sc-H .n{color:var(--amber)}.sc-H{border-color:rgba(247,183,49,.22)}
+.sc-M .n{color:var(--purple)}.sc-M{border-color:rgba(168,128,240,.22)}
+.sc-L .n{color:var(--accent)}.sc-L{border-color:rgba(0,245,212,.22)}
+.sc-P .n{color:var(--blue)}.sc-P{border-color:rgba(0,180,216,.22)}
+.sc-T .n{color:var(--text)}
+
+/* TABS */
+.tab-bar{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tab{padding:6px 14px;font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.hidden{display:none!important}
+
+/* VULN CARDS */
+.vlist{display:flex;flex-direction:column;gap:7px;animation:fadein .3s}
+.vc{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .2s}
+.vc:hover{border-color:rgba(0,245,212,.14)}
+.vch{padding:10px 13px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.sp{padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:1px;flex-shrink:0}
+.sp-C{background:rgba(255,56,100,.15);color:var(--red);border:1px solid rgba(255,56,100,.35)}
+.sp-H{background:rgba(247,183,49,.15);color:var(--amber);border:1px solid rgba(247,183,49,.35)}
+.sp-M{background:rgba(168,128,240,.15);color:var(--purple);border:1px solid rgba(168,128,240,.35)}
+.sp-L{background:rgba(0,245,212,.1);color:var(--accent);border:1px solid rgba(0,245,212,.25)}
+.sp-I{background:rgba(74,96,128,.12);color:var(--dim);border:1px solid rgba(74,96,128,.25)}
+.vtitle{flex:1;font-size:13px;font-weight:500}
+.vid{font-family:var(--mono);font-size:9px;color:var(--dim)}
+.vcvss{font-family:var(--mono);font-size:11px;font-weight:700}
+.conf-b{font-size:8px;font-family:var(--mono);padding:1px 5px;border-radius:2px;flex-shrink:0}
+.cb-HIGH{background:rgba(0,245,212,.09);color:var(--accent)}
+.cb-MEDIUM{background:rgba(247,183,49,.09);color:var(--amber)}
+.cb-LOW{background:rgba(74,96,128,.09);color:var(--dim)}
+.varr{color:var(--dim);font-size:14px;margin-left:2px}
+.vbody{padding:0 13px 13px;display:none;border-top:1px solid var(--border)}
+.vbody.open{display:block}
+.vsec{margin-top:9px}
+.vslbl{font-size:8px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-family:var(--mono);margin-bottom:3px}
+.vsval{font-size:12px;line-height:1.6}
+.vsval.mono{font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--bg);padding:6px 10px;border-radius:4px;border-left:2px solid var(--accent);white-space:pre-wrap;word-break:break-all}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.tag{padding:1px 6px;background:rgba(168,128,240,.12);border:1px solid rgba(168,128,240,.25);border-radius:2px;font-family:var(--mono);font-size:9px;color:var(--purple)}
+.tag.cwe{background:rgba(0,180,216,.1);border-color:rgba(0,180,216,.25);color:var(--blue)}
+.no-f{text-align:center;padding:28px;color:var(--dim);font-family:var(--mono);font-size:11px}
+
+/* PORT TABLE */
+.ptbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.ptbl th{padding:7px 9px;text-align:left;border-bottom:1px solid var(--border);font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:400}
+.ptbl td{padding:7px 9px;border-bottom:1px solid rgba(26,39,68,.4);vertical-align:top}
+.ptbl tr:hover td{background:rgba(0,245,212,.02)}
+.pnum{color:var(--accent);font-weight:700}
+.sbadge{display:inline-block;padding:1px 6px;background:rgba(0,180,216,.09);border:1px solid rgba(0,180,216,.2);border-radius:2px;color:var(--blue);font-size:9px}
+.sbadge.risky{background:rgba(255,56,100,.09);border-color:rgba(255,56,100,.25);color:var(--red)}
+.tls-b{font-size:8px;color:var(--accent);background:rgba(0,245,212,.09);padding:1px 4px;border-radius:2px;margin-left:3px}
+.cc-HIGH{color:var(--accent);font-size:10px}
+.cc-MEDIUM{color:var(--amber);font-size:10px}
+.cc-LOW{color:var(--dim);font-size:10px}
+
+/* PASSIVE RECON */
+.p-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.p-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px}
+.p-box h4{font-family:var(--head);font-size:9px;letter-spacing:2px;color:var(--accent);margin-bottom:7px}
+.p-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;padding:3px 0;border-bottom:1px solid rgba(26,39,68,.3)}
+.p-key{color:var(--dim)}
+.p-val{color:var(--text);text-align:right;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-val.warn{color:var(--red)}
+
+/* CRAWL */
+.c-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.c-stat{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:10px;text-align:center}
+.c-stat .n{font-family:var(--head);font-size:18px;font-weight:700;color:var(--blue);display:block}
+.c-stat .l{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;font-family:var(--mono)}
+.url-list{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:var(--mono);font-size:10px;max-height:180px;overflow-y:auto}
+.url-list a{display:block;color:var(--accent);text-decoration:none;padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* AI BOX */
+.ai-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px;font-family:var(--mono);font-size:11px;line-height:1.85;color:var(--text);white-space:pre-wrap}
+.ai-head{font-family:var(--head);font-size:11px;color:var(--accent);margin-bottom:9px;display:flex;align-items:center;gap:6px}
+
+/* DIFF */
+.diff-summary{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;margin-bottom:12px}
+.diff-new .vc{border-left:3px solid var(--red)}
+.diff-fixed .vc{border-left:3px solid var(--accent);opacity:.7}
+.diff-stitle{font-family:var(--head);font-size:10px;letter-spacing:2px;color:var(--amber);margin:12px 0 7px}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(5,8,16,.87);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px);animation:fadein .2s}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:26px;max-width:420px;width:90%}
+.modal h3{font-family:var(--head);color:var(--accent);letter-spacing:2px;font-size:13px;margin-bottom:10px}
+.modal p{color:var(--text);font-size:12px;line-height:1.7;font-family:var(--ui)}
+.modal code{display:block;background:var(--bg);border:1px solid var(--border);color:var(--accent);padding:7px 12px;border-radius:4px;font-family:var(--mono);font-size:11px;margin:8px 0}
+.modal select{margin:8px 0 12px}
+.mbtn{padding:7px 20px;background:rgba(0,245,212,.09);border:1px solid var(--accent);border-radius:5px;color:var(--accent);font-family:var(--head);font-size:9px;letter-spacing:2px;cursor:pointer;margin-right:8px}
+.mbtn.sec{border-color:var(--dim);color:var(--dim);background:transparent}
+
+/* HISTORY TAB */
+.tgt-item{padding:10px 18px;border-bottom:1px solid rgba(26,39,68,.5);cursor:pointer;transition:background .15s}
+.tgt-item:hover{background:rgba(0,245,212,.04)}
+.tgt-name{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.tgt-meta{font-size:10px;color:var(--dim);font-family:var(--mono);margin-top:2px}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <div><h1>ZEROTHREAT</h1><span>AI VAPT Scanner v3.0</span></div>
+  </div>
+  <div class="hdr-stats">
+    <div class="hs"><span class="v" id="hs-scans">0</span><span class="l">Scans</span></div>
+    <div class="hs"><span class="v" id="hs-vulns">0</span><span class="l">Findings</span></div>
+    <div class="hs"><span class="v" id="hs-crit">0</span><span class="l">Critical</span></div>
+    <div class="hs"><span class="v" id="hs-targets">0</span><span class="l">Targets</span></div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT PANEL -->
+  <div class="left">
+    <div class="left-tabs">
+      <div class="lt active" onclick="leftTab(this,'ls-scan')">Scan</div>
+      <div class="lt" onclick="leftTab(this,'ls-history')">History</div>
+    </div>
+
+    <!-- SCAN SECTION -->
+    <div class="lsec active" id="ls-scan">
+      <div class="form">
+        <div>
+          <label>Target (IP / Domain / URL)</label>
+          <input id="target" placeholder="192.168.1.1 or example.com" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label>Scan Type</label>
+          <div class="stg">
+            <div class="stb active" data-type="both">Full Scan</div>
+            <div class="stb" data-type="network">Network</div>
+            <div class="stb" data-type="webapp">Web App</div>
+          </div>
+        </div>
+        <div>
+          <label>Scan Profile</label>
+          <select id="profile">
+            <option value="light">⚡ Light — Fast, low-noise</option>
+            <option value="normal" selected>⚖ Normal — Balanced</option>
+            <option value="deep">🔥 Deep — Thorough, slower</option>
+          </select>
+        </div>
+        <div>
+          <label>Port Range Override</label>
+          <div class="row2">
+            <input type="number" id="p-start" placeholder="Start (1)" min="1" max="65535">
+            <input type="number" id="p-end" placeholder="End (1024)" min="1" max="65535">
+          </div>
+        </div>
+        <div>
+          <label>Auth Cookies (authenticated scans)</label>
+          <input id="auth-cookies" placeholder="session=abc123; token=xyz" autocomplete="off">
+        </div>
+        <div class="tog-row">
+          <span>Owner Confirmed (required for external targets)</span>
+          <label class="tog"><input type="checkbox" id="owner-confirmed"><span class="slider"></span></label>
+        </div>
+        <div class="tog-row">
+          <span>Internet Exposed (raises adjusted CVSS)</span>
+          <label class="tog"><input type="checkbox" id="inet-exposed"><span class="slider"></span></label>
+        </div>
+        <div class="tog-row">
+          <span>Passive Only (no active probing)</span>
+          <label class="tog"><input type="checkbox" id="passive-only"><span class="slider"></span></label>
+        </div>
+        <hr class="hdiv">
+        <button class="btn-scan" id="scan-btn" onclick="startScan()">⚡ LAUNCH SCAN</button>
+      </div>
+
+      <div class="prog-wrap" id="prog-wrap">
+        <div class="prog-hdr"><span>Progress</span><span id="prog-pct">0%</span></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="prog-msg" id="prog-msg">Initializing...</div>
+        <div class="terminal" id="terminal"></div>
+      </div>
+
+      <div class="ph"><div class="dot a"></div><h2>Active Jobs</h2></div>
+      <div class="list-wrap" id="active-jobs"><div class="empty-l">No active scans</div></div>
+    </div>
+
+    <!-- HISTORY SECTION -->
+    <div class="lsec" id="ls-history">
+      <div class="ph"><div class="dot p"></div><h2>All Targets</h2></div>
+      <div id="target-list"><div class="empty-l">Loading...</div></div>
+      <div class="ph"><div class="dot a"></div><h2>Recent Scans</h2></div>
+      <div class="list-wrap" id="all-history"><div class="empty-l">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="results" id="results">
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>AWAITING TARGET</h3>
+        <p>Configure your scan on the left and hit Launch Scan. Results appear here in real-time.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const RISKY = new Set([23,21,512,513,514,111,135,139,445,161,4444,5900,11211]);
+let scanType = 'both';
+let pollTimer = null;
+let allJobs   = {};
+let currentDisplay = null;
+
+// ── LEFT TABS ──────────────────────────────────────────
+function leftTab(btn, id) {
+  document.querySelectorAll('.lt').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.lsec').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+  if (id === 'ls-history') loadHistory();
+}
+
+// ── SCAN TYPE ──────────────────────────────────────────
+document.querySelectorAll('.stb').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.stb').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); scanType = b.dataset.type;
+  });
+});
+
+// ── LAUNCH SCAN ────────────────────────────────────────
+async function startScan() {
+  const target = document.getElementById('target').value.trim();
+  if (!target) { alert('Please enter a target.'); return; }
+  const ps = parseInt(document.getElementById('p-start').value) || null;
+  const pe = parseInt(document.getElementById('p-end').value)   || null;
+
+  document.getElementById('scan-btn').disabled = true;
+  document.getElementById('scan-btn').textContent = '⏳ SCANNING...';
+  document.getElementById('prog-wrap').classList.add('on');
+  setProgress(0, 'Connecting...');
+  document.getElementById('terminal').innerHTML = '';
+  tlog(`[*] Target: ${target}`);
+  tlog(`[*] Profile: ${document.getElementById('profile').value} | Type: ${scanType}`);
+
+  try {
+    const resp = await fetch('/api/scan', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        target, scan_type: scanType,
+        profile: document.getElementById('profile').value,
+        port_start: ps || 1, port_end: pe || 1024,
+        owner_confirmed: document.getElementById('owner-confirmed').checked,
+        internet_exposed: document.getElementById('inet-exposed').checked,
+        auth_cookies: document.getElementById('auth-cookies').value.trim(),
+        passive_only: document.getElementById('passive-only').checked,
+      })
+    });
+    const data = await resp.json();
+    if (data.error) { alert('Error: ' + data.error); resetBtn(); return; }
+    const jid = data.job_id;
+    allJobs[jid] = { status: 'running', target };
+    updateActiveJobs();
+    pollTimer = setInterval(() => pollStatus(jid), 1800);
+  } catch(e) {
+    tlog('[~] Demo mode — server not running', 'warn');
+    tlog('[~] Start: python api_server.py', 'warn');
+    setTimeout(() => runDemo(target), 1500);
+  }
+}
+
+function resetBtn() {
+  const b = document.getElementById('scan-btn');
+  b.disabled = false; b.textContent = '⚡ LAUNCH SCAN';
+}
+
+// ── POLLING ────────────────────────────────────────────
+async function pollStatus(jid) {
+  try {
+    const d = await fetch(`/api/status?job_id=${jid}`).then(r => r.json());
+    if (d.error) { clearInterval(pollTimer); resetBtn(); return; }
+    setProgress(d.progress || 0, d.progress_msg || '');
+    if (d.log && d.log.length) {
+      document.getElementById('terminal').innerHTML = '';
+      d.log.forEach(l => tlog(l, l.includes('[✓]') ? 'ok' : l.includes('[!]') ? 'err' : ''));
+    }
+    if (d.status === 'complete') {
+      clearInterval(pollTimer);
+      setProgress(100, 'Scan complete!');
+      tlog('[✓] Done!', 'ok');
+      allJobs[jid] = { ...allJobs[jid], ...d, status: 'complete' };
+      updateActiveJobs();
+      showResult(d.result, jid);
+      resetBtn(); updateHdrStats();
+    }
+    if (d.status === 'error') {
+      clearInterval(pollTimer);
+      tlog(`[!] ${d.error}`, 'err'); resetBtn();
+    }
+  } catch(e) {}
+}
+
+// ── DEMO MODE ──────────────────────────────────────────
+function runDemo(target) {
+  const d = makeDemoResult(target);
+  const fid = 'demo_' + Date.now();
+  allJobs[fid] = { status: 'complete', target, result: d };
+  updateActiveJobs(); showResult(d, fid);
+  resetBtn(); setProgress(100, 'Demo complete'); updateHdrStats();
+}
+
+function makeDemoResult(target) {
+  return {
+    target, scan_type: 'both', profile: 'normal',
+    started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+    host_status: 'up', risk_score: 8.4, risk_label: 'CRITICAL',
+    scan_id: 'demo123', scope_status: 'Owner confirmed',
+    open_ports: [
+      { port:22,  protocol:'TCP', service:'SSH',   banner:'SSH-2.0-OpenSSH_7.4', version:'OpenSSH_7.4', confidence:'HIGH',   tls:false },
+      { port:80,  protocol:'TCP', service:'HTTP',  banner:'Apache/2.4.6',         version:'Apache/2.4.6',confidence:'HIGH',   tls:false },
+      { port:443, protocol:'TCP', service:'HTTPS', banner:'',                     version:'TLSv1.3',     confidence:'HIGH',   tls:true  },
+      { port:3306,protocol:'TCP', service:'MySQL', banner:'5.7.29-MariaDB',       version:'5.7.29',      confidence:'HIGH',   tls:false },
+      { port:3389,protocol:'TCP', service:'RDP',   banner:'',                     version:'',            confidence:'MEDIUM', tls:false },
+      { port:6379,protocol:'TCP', service:'Redis', banner:'+PONG',                version:'',            confidence:'HIGH',   tls:false },
+    ],
+    vulnerabilities: [
+      { id:'NET-005', title:'RDP Exposed to Network', severity:'HIGH', cvss_score:8.8, adjusted_score:9.1,
+        description:'RDP exposed publicly. Vulnerable to BlueKeep and brute-force attacks.',
+        affected:'RDP (Port 3389)', recommendation:'Restrict behind VPN. Enable NLA. Patch BlueKeep.',
+        cve_ids:['CVE-2019-0708'], cwe_ids:['CWE-287'], confidence:'MEDIUM',
+        evidence:'Port 3389 open | Service: RDP', evidence_detail:{ endpoint:'RDP:3389', request_snippet:'', response_snippet:'' } },
+      { id:'NET-006', title:'Redis Without Authentication', severity:'CRITICAL', cvss_score:9.8, adjusted_score:10.0,
+        description:'Redis accessible without auth. Full read/write + potential RCE via CONFIG SET.',
+        affected:'Redis (Port 6379)', recommendation:'Set requirepass in redis.conf. Bind to 127.0.0.1.',
+        cve_ids:['CVE-2022-0543'], cwe_ids:['CWE-306'], confidence:'HIGH',
+        evidence:'Port 6379 open | +PONG response confirms Redis', evidence_detail:{ endpoint:'Redis:6379', triggered_by:'PING probe', banner_snippet:'+PONG' } },
+    ],
+    web_findings: [
+      { id:'WEB-005', title:'Missing Security Headers', severity:'MEDIUM', cvss_score:5.3, adjusted_score:5.5,
+        description:'Multiple HTTP security headers absent.',
+        affected:'HTTP Response Headers', recommendation:'Add X-Frame-Options, HSTS, CSP, Referrer-Policy.',
+        cve_ids:[], cwe_ids:['CWE-693'], confidence:'HIGH',
+        evidence:'Missing: x-frame-options, strict-transport-security, content-security-policy',
+        evidence_detail:{ endpoint:'https://'+target, request_snippet:'GET /', response_snippet:'Server: Apache/2.4.6\nX-Powered-By: PHP/7.2' } },
+      { id:'WEB-009', title:'Admin Panel Accessible', severity:'HIGH', cvss_score:8.0, adjusted_score:8.2,
+        description:'Admin interface accessible without network restriction.',
+        affected:'Admin Endpoints', recommendation:'Restrict to VPN/specific IPs. Add MFA.',
+        cve_ids:[], cwe_ids:['CWE-284'], confidence:'HIGH',
+        evidence:'2 admin paths found:\n  /admin → HTTP 200\n  /phpmyadmin → HTTP 200',
+        evidence_detail:{ endpoint:'https://'+target+'/admin', request_snippet:'GET /admin', response_snippet:'HTTP 200 OK' } },
+      { id:'WEB-010', title:'Server Information Disclosure', severity:'LOW', cvss_score:3.7, adjusted_score:3.9,
+        description:'HTTP headers reveal technology stack.',
+        affected:'HTTP Response Headers', recommendation:'Remove Server and X-Powered-By headers.',
+        cve_ids:[], cwe_ids:['CWE-200'], confidence:'HIGH',
+        evidence:'Server: Apache/2.4.6 | X-Powered-By: PHP/7.2',
+        evidence_detail:{ endpoint:'https://'+target, response_snippet:'Server: Apache/2.4.6' } },
+    ],
+    tech_stack: { framework:'', server:'Apache', language:'PHP', cms:'', cdn:'Cloudflare', waf:'', extras:['PHP','React'] },
+    crawl_result: {
+      urls: ['https://'+target, 'https://'+target+'/about', 'https://'+target+'/login', 'https://'+target+'/admin'],
+      forms: [{ action:'https://'+target+'/login', method:'POST', fields:['username','password','csrf_token'] }],
+      params: ['id','page','search','q'], emails: ['admin@'+target]
+    },
+    passive_info: {
+      dns_records: { A: '93.184.216.34', MX: 'mail.'+target },
+      tls_info: { version:'TLSv1.3', subject:{ commonName: target },
+                  issuer:{ organizationName:"Let's Encrypt" },
+                  not_after:'Dec 31 23:59:59 2025 GMT', days_until_expiry:42 },
+      headers: { 'Content-Type':'text/html', 'Server':'Apache/2.4.6' }
+    },
+    summary: { total:5, by_severity:{ CRITICAL:1, HIGH:2, MEDIUM:1, LOW:1, INFO:0 } },
+    ai_analysis: `## AI Risk Assessment: ${target}\n**Overall Risk Score: 8.4/10 (CRITICAL)**\n\n**Attack Surface:** 6 open port(s). 5 total finding(s).\n\n**Technology Stack Identified:** Apache, Cloudflare. Check NVD for version-specific CVEs.\n\n**Critical (1):** Redis Without Authentication. Exploitable with minimal skill — full compromise risk.\n\n**High (2):** RDP Exposed to Network, Admin Panel Accessible. Require prompt remediation.\n\n**Medium (1):** Missing Security Headers. Compounds risk when chained with other findings.\n\n**Priority Remediation (Top 3):**\n  1. [CRITICAL] Redis — requirepass + bind to localhost.\n  2. [HIGH] RDP — Restrict behind VPN. Enable NLA.\n  3. [HIGH] Admin Panel — Restrict access. Add MFA.`
+  };
+}
+
+// ── SHOW RESULT ────────────────────────────────────────
+function showResult(result, jid) {
+  currentDisplay = jid;
+  updateJobsActive();
+  const allV = [...(result.vulnerabilities || []), ...(result.web_findings || [])];
+  const sev   = result.summary?.by_severity || {};
+  const ports = result.open_ports || [];
+  const score = result.risk_score || 0;
+  const rc    = scoreCol(score);
+  const circ  = 2 * Math.PI * 29;
+  const dash  = circ * (score / 10);
+  const ts    = result.tech_stack || {};
+  const stackParts = [ts.server, ts.framework, ts.cms, ts.cdn, ts.waf, ...(ts.extras||[])].filter(Boolean);
+
+  document.getElementById('results').innerHTML = `
+  <div style="animation:fadein .3s">
+    <div class="res-hdr">
+      <div>
+        <div class="res-target">🎯 ${x(result.target)}</div>
+        <div class="res-meta">
+          Status: ${result.host_status||'unknown'} &nbsp;|&nbsp;
+          Profile: ${result.profile||'normal'} &nbsp;|&nbsp;
+          ${fmtD(result.started_at)}
+          ${result.scope_status ? ` &nbsp;|&nbsp; <span style="color:var(--accent)">${x(result.scope_status)}</span>` : ''}
+        </div>
+        ${stackParts.length ? `<div class="res-stack">Stack: ${x(stackParts.join(' · '))}${ts.waf ? ` &nbsp;<span style="color:var(--amber)">🛡 WAF: ${x(ts.waf)}</span>` : ''}</div>` : ''}
+      </div>
+      <div class="hdr-btns">
+        <button class="btn-dl btn-diff" onclick="showDiffModal('${jid}')">⊕ DIFF</button>
+        <button class="btn-dl btn-sarif" id="sarif-btn" onclick="dlSARIF('${jid}')">⬇ SARIF</button>
+        <button class="btn-dl btn-pdf"  id="pdf-btn"  onclick="dlPDF('${jid}')">⬇ PDF</button>
+        <div class="risk-ring">
+          <svg viewBox="0 0 68 68">
+            <circle class="ring-bg" cx="34" cy="34" r="29"/>
+            <circle class="ring-fill" cx="34" cy="34" r="29" stroke="${rc}"
+              stroke-dasharray="${dash} ${circ}" stroke-dashoffset="0"/>
+          </svg>
+          <div class="risk-txt" style="color:${rc}">${score}<span class="risk-sub">${result.risk_label}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sum-grid">
+      <div class="sc sc-C"><span class="n">${sev.CRITICAL||0}</span><div class="l">Critical</div></div>
+      <div class="sc sc-H"><span class="n">${sev.HIGH||0}</span><div class="l">High</div></div>
+      <div class="sc sc-M"><span class="n">${sev.MEDIUM||0}</span><div class="l">Medium</div></div>
+      <div class="sc sc-L"><span class="n">${sev.LOW||0}</span><div class="l">Low</div></div>
+      <div class="sc sc-P"><span class="n">${ports.length}</span><div class="l">Ports</div></div>
+      <div class="sc sc-T"><span class="n">${allV.length}</span><div class="l">Total</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab(this,'tab-v')">Vulnerabilities (${allV.length})</div>
+      <div class="tab" onclick="switchTab(this,'tab-p')">Ports (${ports.length})</div>
+      <div class="tab" onclick="switchTab(this,'tab-r')">Recon</div>
+      <div class="tab" onclick="switchTab(this,'tab-c')">Crawl</div>
+      <div class="tab" onclick="switchTab(this,'tab-a')">AI Analysis</div>
+    </div>
+
+    <div id="tab-v">${renderVulns(allV)}</div>
+    <div id="tab-p" class="hidden">${renderPorts(ports)}</div>
+    <div id="tab-r" class="hidden">${renderPassive(result.passive_info, ts)}</div>
+    <div id="tab-c" class="hidden">${renderCrawl(result.crawl_result)}</div>
+    <div id="tab-a" class="hidden">${renderAI(result.ai_analysis)}</div>
+  </div>`;
+}
+
+// ── RENDERERS ──────────────────────────────────────────
+function renderVulns(vulns) {
+  if (!vulns.length) return '<div class="no-f">✅ No vulnerabilities detected in scanned scope.</div>';
+  const ord = { CRITICAL:0, HIGH:1, MEDIUM:2, LOW:3, INFO:4 };
+  vulns = [...vulns].sort((a,b) => (ord[a.severity]||5) - (ord[b.severity]||5));
+  return '<div class="vlist">' + vulns.map((v, i) => {
+    const sev = v.severity||'INFO';
+    const col = sevCol(sev);
+    const adj = v.adjusted_score || v.cvss_score || 0;
+    const ed  = v.evidence_detail || {};
+    const conf = v.confidence || 'MEDIUM';
+    const cves = (v.cve_ids||[]).map(c => `<span class="tag">${x(c)}</span>`).join('');
+    const cwes = (v.cwe_ids||[]).map(c => `<span class="tag cwe">${x(c)}</span>`).join('');
+    const refs = (v.references||[]).slice(0,2).map(r =>
+      `<a href="${x(r)}" target="_blank" style="color:var(--blue);font-size:10px;font-family:var(--mono)">${x(r)}</a>`).join('<br>');
+    return `<div class="vc">
+      <div class="vch" onclick="togV(${i})">
+        <span class="sp sp-${sev[0]}">${sev}</span>
+        <span class="vtitle">${x(v.title)}</span>
+        <span class="vid">${x(v.id)}</span>
+        <span class="conf-b cb-${conf}">${conf}</span>
+        <span class="vcvss" style="color:${col}">${adj}</span>
+        <span class="varr" id="arr-${i}">›</span>
+      </div>
+      <div class="vbody" id="vb-${i}">
+        <div class="vsec"><div class="vslbl">Description</div><div class="vsval">${x(v.description)}</div></div>
+        <div class="vsec"><div class="vslbl">Affected</div><div class="vsval">${x(v.affected)}</div></div>
+        ${v.evidence ? `<div class="vsec"><div class="vslbl">Evidence</div><div class="vsval mono">${x(v.evidence)}</div></div>` : ''}
+        ${ed.request_snippet  ? `<div class="vsec"><div class="vslbl">Request</div><div class="vsval mono">${x(ed.request_snippet)}</div></div>` : ''}
+        ${ed.response_snippet ? `<div class="vsec"><div class="vslbl">Response</div><div class="vsval mono">${x(ed.response_snippet)}</div></div>` : ''}
+        <div class="vsec"><div class="vslbl">Recommendation</div><div class="vsval">${x(v.recommendation)}</div></div>
+        ${cves||cwes ? `<div class="vsec"><div class="vslbl">References</div><div class="tags">${cves}${cwes}</div></div>` : ''}
+        ${refs ? `<div class="vsec"><div class="vslbl">Links</div>${refs}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderPorts(ports) {
+  if (!ports.length) return '<div class="no-f">No open ports found in scanned range.</div>';
+  return `<table class="ptbl">
+    <thead><tr><th>Port</th><th>Proto</th><th>Service</th><th>TLS</th><th>Conf</th><th>Version</th><th>Banner</th></tr></thead>
+    <tbody>${ports.map(p => {
+      const r = RISKY.has(p.port);
+      const b = (p.banner||'—').replace(/\n/g,' ').substring(0,70);
+      return `<tr>
+        <td class="pnum">${p.port}</td>
+        <td style="color:var(--dim)">${p.protocol}</td>
+        <td><span class="sbadge ${r?'risky':''}">${x(p.service)}</span></td>
+        <td>${p.tls ? '<span class="tls-b">TLS</span>' : '<span style="color:var(--dim);font-size:9px">—</span>'}</td>
+        <td class="cc-${p.confidence||'MEDIUM'}">${p.confidence||'—'}</td>
+        <td style="color:var(--dim)">${x(p.version||'—')}</td>
+        <td style="color:var(--dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${x(p.banner||'')}">${x(b)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function renderPassive(pi, ts) {
+  if (!pi) return '<div class="no-f">No passive recon data available.</div>';
+  const tls = pi.tls_info || {}, dns = pi.dns_records || {}, hdrs = pi.headers || {};
+  const tlsRows = Object.entries(tls)
+    .filter(([k]) => !['error','san','cipher'].includes(k))
+    .map(([k,v]) => `<div class="p-row"><span class="p-key">${x(k)}</span><span class="p-val ${k.includes('warning')?'warn':''}">${x(String(v).substring(0,55))}</span></div>`).join('');
+  const dnsRows = Object.entries(dns)
+    .map(([k,v]) => `<div class="p-row"><span class="p-key">${x(k)}</span><span class="p-val">${x(String(v).substring(0,55))}</span></div>`).join('');
+  const hdrRows = Object.entries(hdrs).slice(0,10)
+    .map(([k,v]) => `<div class="p-row"><span class="p-key">${x(k)}</span><span class="p-val">${x(String(v).substring(0,55))}</span></div>`).join('');
+  const sanList = (tls.san||[]).join(', ');
+  const stackInfo = ts ? [ts.server,ts.framework,ts.cms,ts.cdn,ts.waf,...(ts.extras||[])].filter(Boolean) : [];
+  return `<div class="p-grid">
+    <div class="p-box"><h4>TLS / Certificate</h4>${tlsRows||'<div style="color:var(--dim);font-size:10px">No TLS data (HTTP or port 443 not open)</div>'}
+      ${sanList ? `<div class="p-row"><span class="p-key">SANs</span><span class="p-val">${x(sanList.substring(0,70))}</span></div>` : ''}
+    </div>
+    <div class="p-box"><h4>DNS Records</h4>${dnsRows||'<div style="color:var(--dim);font-size:10px">No DNS data available</div>'}</div>
+    ${stackInfo.length ? `<div class="p-box"><h4>Detected Tech Stack</h4>${stackInfo.map(t=>`<div class="p-row"><span class="p-val" style="color:var(--blue)">${x(t)}</span></div>`).join('')}</div>` : ''}
+    <div class="p-box" style="${stackInfo.length?'':'grid-column:1/-1'}"><h4>HTTP Headers</h4>${hdrRows||'<div style="color:var(--dim);font-size:10px">No headers captured</div>'}</div>
+  </div>`;
+}
+
+function renderCrawl(cr) {
+  if (!cr || (!cr.urls?.length && !cr.forms?.length))
+    return '<div class="no-f">No crawl data. Enable "both" or "webapp" scan type with crawl depth > 0.</div>';
+  const urlHtml = (cr.urls||[]).map(u => `<a href="${x(u)}" target="_blank">${x(u)}</a>`).join('');
+  const formHtml = (cr.forms||[]).map(f =>
+    `<div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:7px 10px;margin-bottom:5px;font-family:var(--mono);font-size:10px">
+      <span style="color:var(--blue)">${x(f.method)}</span> ${x(f.action)}<br>
+      <span style="color:var(--dim)">Fields: ${x((f.fields||[]).join(', '))}</span>
+    </div>`).join('');
+  return `<div class="c-grid">
+    <div class="c-stat"><span class="n">${(cr.urls||[]).length}</span><div class="l">URLs</div></div>
+    <div class="c-stat"><span class="n">${(cr.forms||[]).length}</span><div class="l">Forms</div></div>
+    <div class="c-stat"><span class="n">${(cr.params||[]).length}</span><div class="l">Params</div></div>
+  </div>
+  ${cr.params?.length ? `<div style="margin-bottom:10px"><div class="vslbl">Discovered Parameters</div><div style="font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--panel);padding:7px 10px;border-radius:4px;border:1px solid var(--border)">${x((cr.params||[]).join(', '))}</div></div>` : ''}
+  ${cr.emails?.length ? `<div style="margin-bottom:10px"><div class="vslbl">Emails Found</div><div style="font-family:var(--mono);font-size:10px;color:var(--amber);background:var(--panel);padding:7px 10px;border-radius:4px;border:1px solid var(--border)">${x((cr.emails||[]).join(', '))}</div></div>` : ''}
+  ${formHtml ? `<div style="margin-bottom:10px"><div class="vslbl">Forms Discovered</div>${formHtml}</div>` : ''}
+  <div><div class="vslbl">Crawled URLs</div><div class="url-list">${urlHtml||'<span style="color:var(--dim)">None</span>'}</div></div>`;
+}
+
+function renderAI(text) {
+  return `<div class="ai-box"><div class="ai-head">🤖 AI Risk Assessment</div>${x(text||'No analysis available.')}</div>`;
+}
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(btn, id) {
+  btn.closest('.tab-bar').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['tab-v','tab-p','tab-r','tab-c','tab-a'].forEach(t => {
+    const el = document.getElementById(t);
+    if (el) el.classList.toggle('hidden', t !== id);
+  });
+}
+
+function togV(i) {
+  const b = document.getElementById(`vb-${i}`);
+  const a = document.getElementById(`arr-${i}`);
+  a.textContent = b.classList.toggle('open') ? '⌄' : '›';
+}
+
+// ── DIFF ───────────────────────────────────────────────
+function showDiffModal(jid) {
+  const others = Object.entries(allJobs).filter(([id, j]) => j.result && id !== jid);
+  const ov = document.createElement('div');
+  ov.className = 'modal-ov';
+  ov.innerHTML = `<div class="modal">
+    <h3>COMPARE SCANS</h3>
+    <p>Select an earlier scan to compare against the current result:</p>
+    ${others.length
+      ? `<select id="diff-sel" style="margin:8px 0 12px">${others.map(([id,j]) =>
+          `<option value="${id}">${x(j.result?.target||j.target||id)} — ${j.result?.risk_label||''} (${fmtD(j.result?.started_at||'')})</option>`).join('')}</select>
+        <div>
+          <button class="mbtn" onclick="runDiff('${jid}',document.getElementById('diff-sel').value);this.closest('.modal-ov').remove()">COMPARE</button>
+          <button class="mbtn sec" onclick="this.closest('.modal-ov').remove()">CANCEL</button>
+        </div>`
+      : `<p style="color:var(--dim);font-family:var(--mono);font-size:10px;margin-top:8px">No other scans available to compare. Run another scan first.</p>
+         <button class="mbtn sec" style="margin-top:10px" onclick="this.closest('.modal-ov').remove()">CLOSE</button>`}
+  </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+}
+
+async function runDiff(newId, oldId) {
+  try {
+    const diff = await fetch('/api/diff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ old_scan_id: oldId, new_scan_id: newId })
+    }).then(r => r.json());
+    if (diff.error) { alert(diff.error); return; }
+    showDiffResult(diff);
+  } catch(e) {
+    // Client-side diff fallback
+    const oj = allJobs[oldId]?.result, nj = allJobs[newId]?.result;
+    if (!oj || !nj) { alert('Scan data not available'); return; }
+    const oV = [...(oj.vulnerabilities||[]),...(oj.web_findings||[])];
+    const nV = [...(nj.vulnerabilities||[]),...(nj.web_findings||[])];
+    const oK = new Set(oV.map(v => v.id+'|'+v.affected));
+    const nK = new Set(nV.map(v => v.id+'|'+v.affected));
+    showDiffResult({
+      target: nj.target,
+      old_risk_score: oj.risk_score, new_risk_score: nj.risk_score,
+      old_risk_label: oj.risk_label, new_risk_label: nj.risk_label,
+      risk_delta: +(nj.risk_score - oj.risk_score).toFixed(1),
+      new_findings: nV.filter(v => !oK.has(v.id+'|'+v.affected)),
+      fixed_findings: oV.filter(v => !nK.has(v.id+'|'+v.affected)),
+      ports_opened:[], ports_closed:[], regressions:[],
+      summary: [
+        nV.filter(v=>!oK.has(v.id+'|'+v.affected)).length ? `🔴 ${nV.filter(v=>!oK.has(v.id+'|'+v.affected)).length} new finding(s)` : '',
+        oV.filter(v=>!nK.has(v.id+'|'+v.affected)).length ? `✅ ${oV.filter(v=>!nK.has(v.id+'|'+v.affected)).length} finding(s) remediated` : '',
+      ].filter(Boolean).join('\n') || '✅ No changes detected',
+    });
+  }
+}
+
+function showDiffResult(diff) {
+  const rd = diff.risk_delta || 0;
+  const rdStr = rd > 0 ? `📈 +${rd}` : rd < 0 ? `📉 ${rd}` : '→ No change';
+  document.getElementById('results').innerHTML = `<div style="animation:fadein .3s">
+    <div class="res-hdr">
+      <div>
+        <div class="res-target">⊕ Scan Diff — ${x(diff.target||'')}</div>
+        <div class="res-meta">Risk: ${diff.old_risk_score} (${diff.old_risk_label||''}) → ${diff.new_risk_score} (${diff.new_risk_label||''}) &nbsp;|&nbsp; ${rdStr}</div>
+      </div>
+    </div>
+    <div class="diff-summary">${x(diff.summary||'')}</div>
+    ${diff.ports_opened?.length ? `<div class="diff-stitle">⚠ NEW PORTS OPENED: ${diff.ports_opened.join(', ')}</div>` : ''}
+    ${diff.new_findings?.length ? `<div class="diff-stitle">🔴 NEW FINDINGS (${diff.new_findings.length})</div><div class="diff-new">${renderVulns(diff.new_findings)}</div>` : ''}
+    ${diff.fixed_findings?.length ? `<div class="diff-stitle">✅ RESOLVED (${diff.fixed_findings.length})</div><div class="diff-fixed">${renderVulns(diff.fixed_findings)}</div>` : ''}
+    ${!diff.new_findings?.length && !diff.fixed_findings?.length ? '<div class="no-f">✅ No changes in findings between scans.</div>' : ''}
+  </div>`;
+}
+
+// ── HISTORY ────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const [scans, targets] = await Promise.all([
+      fetch('/api/history').then(r => r.json()),
+      fetch('/api/targets').then(r => r.json()),
+    ]);
+    const tEl = document.getElementById('target-list');
+    tEl.innerHTML = targets.length
+      ? targets.map(t => `<div class="tgt-item" onclick="loadTargetHistory('${x(t.target)}')">
+          <div class="tgt-name">${x(t.target)}</div>
+          <div class="tgt-meta">${t.scan_count} scan(s) | Avg risk: ${(t.avg_risk||0).toFixed(1)} | Last: ${fmtD(t.last_scan).split(',')[0]}</div>
+        </div>`).join('')
+      : '<div class="empty-l">No targets yet</div>';
+
+    renderHistList(scans, 'all-history');
+    document.getElementById('hs-targets').textContent = targets.length;
+  } catch(e) {
+    document.getElementById('target-list').innerHTML = '<div class="empty-l">Server not running</div>';
+    document.getElementById('all-history').innerHTML = '<div class="empty-l">Start api_server.py</div>';
+  }
+}
+
+function renderHistList(scans, elId) {
+  const el = document.getElementById(elId);
+  if (!scans?.length) { el.innerHTML = '<div class="empty-l">No scans yet</div>'; return; }
+  el.innerHTML = scans.map(s => `
+    <div class="litem" onclick="loadStoredScan('${x(s.scan_id)}')">
+      <span class="ltgt">${x(s.target)}</span>
+      <span class="ltime">${fmtD(s.started_at).split(',')[0]}</span>
+      <span class="rb rb-${s.risk_label||'MINIMAL'}">${s.risk_label||'—'}</span>
+    </div>`).join('');
+}
+
+async function loadTargetHistory(target) {
+  try {
+    const scans = await fetch(`/api/history?target=${encodeURIComponent(target)}`).then(r => r.json());
+    renderHistList(scans, 'all-history');
+  } catch(e) {}
+}
+
+async function loadStoredScan(scanId) {
+  try {
+    const result = await fetch(`/api/scan?scan_id=${scanId}`).then(r => r.json());
+    if (result && !result.error) {
+      allJobs[scanId] = { status: 'complete', target: result.target, result };
+      showResult(result, scanId);
+    }
+  } catch(e) {}
+}
+
+// ── ACTIVE JOBS ────────────────────────────────────────
+function updateActiveJobs() {
+  const el = document.getElementById('active-jobs');
+  const jobs = Object.entries(allJobs).reverse();
+  if (!jobs.length) { el.innerHTML = '<div class="empty-l">No active scans</div>'; return; }
+  el.innerHTML = jobs.map(([id, j]) => {
+    const r = j.result;
+    return `<div class="litem ${id===currentDisplay?'active':''}" onclick="onJobClick('${id}')">
+      <span class="ltgt">${x(j.target||r?.target||id)}</span>
+      ${j.status==='running'
+        ? '<span class="rb rb-running">SCANNING</span>'
+        : r?.risk_label
+        ? `<span class="rb rb-${r.risk_label}">${r.risk_label}</span>`
+        : j.status==='scope-blocked'
+        ? '<span class="rb rb-scope-blocked">BLOCKED</span>'
+        : '<span class="rb rb-MINIMAL">—</span>'}
+    </div>`;
+  }).join('');
+}
+
+function updateJobsActive() {
+  const ids = Object.keys(allJobs).reverse();
+  document.querySelectorAll('#active-jobs .litem').forEach((el, i) => {
+    el.classList.toggle('active', ids[i] === currentDisplay);
+  });
+}
+
+function onJobClick(id) {
+  if (allJobs[id]?.result) showResult(allJobs[id].result, id);
+}
+
+// ── DOWNLOADS ──────────────────────────────────────────
+async function dlPDF(jid) {
+  const btn = document.getElementById('pdf-btn');
+  if (!btn) return;
+  if (jid.startsWith('demo_')) {
+    showInfoModal('PDF Export', 'Start the backend server to enable PDF export:<code>python api_server.py</code>'); return;
+  }
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await fetch(`/api/report/pdf?job_id=${jid}`);
+    if (!r.ok) { const e = await r.json(); alert('PDF Error: ' + (e.error||'Unknown')); return; }
+    triggerDownload(await r.blob(), `zerothreat_${jid.slice(-6)}.pdf`);
+    btn.textContent = '✓ DONE';
+    setTimeout(() => { btn.textContent = '⬇ PDF'; btn.disabled = false; }, 3000);
+  } catch(e) {
+    showInfoModal('PDF Export', 'Server not running.<code>python api_server.py</code>');
+    btn.disabled = false; btn.textContent = '⬇ PDF';
+  }
+}
+
+async function dlSARIF(jid) {
+  const btn = document.getElementById('sarif-btn');
+  if (!btn) return;
+  if (jid.startsWith('demo_')) {
+    showInfoModal('SARIF Export', 'Start the backend server to enable SARIF export:<code>python api_server.py</code>'); return;
+  }
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await fetch(`/api/report/sarif?job_id=${jid}`);
+    if (!r.ok) { const e = await r.json(); alert('SARIF Error: ' + (e.error||'Unknown')); return; }
+    triggerDownload(await r.blob(), `zerothreat_${jid.slice(-6)}.sarif`);
+    btn.textContent = '✓ DONE';
+    setTimeout(() => { btn.textContent = '⬇ SARIF'; btn.disabled = false; }, 3000);
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '⬇ SARIF';
+  }
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── HEADER STATS ───────────────────────────────────────
+function updateHdrStats() {
+  const done = Object.values(allJobs).filter(j => j.result);
+  let v = 0, c = 0;
+  done.forEach(j => {
+    if (j.result?.summary) { v += j.result.summary.total||0; c += j.result.summary.by_severity?.CRITICAL||0; }
+  });
+  document.getElementById('hs-scans').textContent   = done.length;
+  document.getElementById('hs-vulns').textContent   = v;
+  document.getElementById('hs-crit').textContent    = c;
+  document.getElementById('hs-targets').textContent = new Set(done.map(j => j.result?.target||j.target)).size;
+}
+
+// ── UTILS ──────────────────────────────────────────────
+function setProgress(pct, msg) {
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent  = pct + '%';
+  if (msg) document.getElementById('prog-msg').textContent = msg;
+}
+
+function tlog(text, cls='') {
+  const el = document.getElementById('terminal');
+  const d  = document.createElement('div');
+  d.className = cls === 'ok' ? 't-ok' : cls === 'err' ? 't-err' : cls === 'warn' ? 't-warn' : '';
+  d.textContent = text;
+  el.appendChild(d); el.scrollTop = el.scrollHeight;
+}
+
+function scoreCol(s) {
+  return s >= 8 ? 'var(--red)' : s >= 6 ? 'var(--amber)' : s >= 4 ? 'var(--purple)' : 'var(--accent)';
+}
+function sevCol(sev) {
+  return { CRITICAL:'var(--red)', HIGH:'var(--amber)', MEDIUM:'var(--purple)', LOW:'var(--accent)', INFO:'var(--dim)' }[sev] || 'var(--dim)';
+}
+function x(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtD(iso) { try { return new Date(iso).toLocaleString(); } catch { return iso||''; } }
+
+function showInfoModal(title, body) {
+  const ov = document.createElement('div');
+  ov.className = 'modal-ov';
+  ov.innerHTML = `<div class="modal"><h3>${title}</h3><p>${body}</p><button class="mbtn" onclick="this.closest('.modal-ov').remove()">CLOSE</button></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+}
+
+// Enter to scan
+document.getElementById('target').addEventListener('keydown', e => { if (e.key === 'Enter') startScan(); });
+
+// Load server state on startup
+window.addEventListener('load', async () => {
+  try {
+    const jobs = await fetch('/api/jobs').then(r => r.json());
+    for (const j of jobs) {
+      if (j.result) allJobs[j.job_id] = { ...j };
+    }
+    updateActiveJobs(); updateHdrStats();
+    const targets = await fetch('/api/targets').then(r => r.json());
+    if (targets.length) document.getElementById('hs-targets').textContent = targets.length;
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
